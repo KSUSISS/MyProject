@@ -1,1 +1,4 @@
-
+target_language: csharp
+test_framework: nunit
+spec_path: spec/todolist.yaml
+output_dir: tests/Module.Tests
