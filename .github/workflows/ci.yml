@@ -1,1 +1,65 @@
 
+name: .NET CI Pipeline with Test Generation (NUnit)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Ветка для тестирования (ИИ-версия)'
+        required: true
+        default: 'ai-version-1'
+        type: choice
+        options:
+          - ai-version-1
+          - ai-version-2
+          - ai-version-3
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Скачиваем выбранную ветку с кодом нейронки
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      # 2. Настраиваем Python для генератора тестов
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Устанавливаем библиотеку для работы с YAML
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      # 3. Запускаем генератор (он создаст файлы тестов прямо в коде этой ветки)
+      - name: Generate NUnit tests from Spec
+        run: python generator/gen_tests.py
+
+      # 4. Настраиваем .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x' # Версия 6.0, как в твоей Лб4
+
+      # 5. Восстанавливаем зависимости и собираем проект
+      - name: Restore dependencies
+        run: dotnet restore ai-version.sln
+
+      # 6. Компилируем проект вместе с созданными тестами
+      - name: Build project
+        run: dotnet build ai-version.sln --no-restore --configuration Release
+
+      # 7. Запускаем сгенерированные тесты
+      - name: Run Auto-Generated Tests
+        run: dotnet test ai-version.sln --no-build --verbosity normal --logger "console;verbosity=detailed"
+
+      # 8. Выкладываем результаты в артефакты GitHub
+      - name: Publish Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nunit-test-results-${{ github.event.inputs.branch }}
+          path: '**/*.trx'
