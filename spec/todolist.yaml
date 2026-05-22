@@ -1,1 +1,72 @@
+module: ToDoListManager
 
+non_functional_requirements:
+  - id: NFR-1
+    desc: "Идентификаторы задач уникальны в пределах одного списка"
+  - id: NFR-2
+    desc: "Статус задачи: только 'Не выполнена' или 'Выполнена'"
+  - id: NFR-3
+    desc: "Операции не нарушают целостность данных"
+
+methods:
+  - name: AddTask
+    req_functional: ["1"]
+    req_non_functional: ["NFR-1", "NFR-2", "NFR-3"]
+    signature: "void AddTask(string description)"
+    pre: "description != null && !string.IsNullOrWhiteSpace(description)"
+    post: "Создана задача с новым уникальным ID, Status = 'Не выполнена', Count = old(Count) + 1"
+    equivalence_classes:
+      - case: "Valid_Description"
+        inputs: ["Написать отчет"]
+        expected: "Задача добавлена, статус 'Не выполнена'"
+      - case: "Empty_String"
+        inputs: [""]
+        expected: "ArgumentException или игнорирование"
+      - case: "Null_String"
+        inputs: [null]
+        expected: "ArgumentNullException или игнорирование"
+
+  - name: RemoveTask
+    req_functional: ["2"]
+    req_non_functional: ["NFR-3"]
+    signature: "void RemoveTask(int id)"
+    pre: "true"
+    post: "id существует -> Count = old(Count) - 1; id не существует -> State unchanged"
+    equivalence_classes:
+      - case: "Existing_ID"
+        inputs: [1]
+        expected: "Задача удалена"
+      - case: "Non_Existing_ID"
+        inputs: [999]
+        expected: "Состояние системы не изменилось"
+
+  - name: MarkTaskAsCompleted
+    req_functional: ["3"]
+    req_non_functional: ["NFR-2", "NFR-3"]
+    signature: "void MarkTaskAsCompleted(int id)"
+    pre: "true"
+    post: "id существует && Status == 'Не выполнена' -> Status = 'Выполнена'; else -> State unchanged"
+    equivalence_classes:
+      - case: "Uncompleted_Task"
+        inputs: [1]
+        expected: "Статус изменен на 'Выполнена'"
+      - case: "Already_Completed_Task"
+        inputs: [2]
+        expected: "Состояние не изменилось"
+      - case: "Task_Not_Found"
+        inputs: [999]
+        expected: "Состояние не изменилось"
+
+  - name: GetTasks
+    req_functional: ["4"]
+    req_non_functional: ["NFR-1", "NFR-2"]
+    signature: "string[] GetTasks()"
+    pre: "true"
+    post: "Возвращает массив строк формата '{id}. {description} [{status}]'"
+    equivalence_classes:
+      - case: "Empty_List"
+        inputs: []
+        expected: "Массив длины 0"
+      - case: "List_With_Tasks"
+        inputs: []
+        expected: "Массив с отформатированными строками"
